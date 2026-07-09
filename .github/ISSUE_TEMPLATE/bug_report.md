@@ -9,7 +9,7 @@ assignees: ''
 **Otari version:**
 **Python version:**
 **Run mode:** <!-- standalone / hybrid -->
-**How you're running Otari:** <!-- Docker / docker compose / from source / Railway -->
+**How you're running Otari:** <!-- Docker / docker compose / from source / Render -->
 **Provider and model:** <!-- e.g. openai:gpt-4o-mini -->
 
 ### What happened

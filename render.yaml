@@ -7,7 +7,7 @@
 # Image: https://hub.docker.com/r/mzdotai/otari
 #
 # Pattern: image-wrapper (official mzdotai/otari image; no source build on Render)
-# Mirrors upstream deploy/railway/ (Otari + managed Postgres, env-only config).
+# Env-only standalone: Otari web + managed Postgres (auto_migrate + bootstrap key).
 
 previews:
   generation: off

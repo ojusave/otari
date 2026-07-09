@@ -19,22 +19,21 @@ When turning that setup into a longer-lived deployment:
 - Add `pricing` entries for every model you want budget enforcement on.
 - Point container health checks at `/health` and `/health/readiness`.
 
-## Deploy on Railway
+## Deploy on Render
 
-For a hosted standalone deployment without local setup, use the one-click
-[Railway](https://railway.com) template. It stands up two services: Otari
-(`docker.io/mzdotai/otari:latest`, target port `8000`, healthcheck `/health`)
-and a managed Postgres, wired together with
-`OTARI_DATABASE_URL=${{Postgres.DATABASE_URL}}`.
+For a hosted standalone deployment without local setup, use the Render Blueprint
+in [`render.yaml`](../render.yaml). It stands up two resources: Otari
+(`docker.io/mzdotai/otari:0.2.0`, port `8000`, health check `/health`) and
+managed Postgres, wired with `OTARI_DATABASE_URL` from the database connection
+string.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/otari-railway-template-demo)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy-template/api/github/start?template_repo=<TEMPLATE_REPO_SLUG>)
 
-You set at least one provider key (the form prompts for `OPENAI_API_KEY`; add a
-variable like `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` to use
-another provider). The master key is auto-generated and `OTARI_REQUIRE_PRICING=false`
-is pre-set so an env-only deploy is usable out of the box. The template
-definition lives in
-[`deploy/railway/`](https://github.com/mozilla-ai/otari/tree/main/deploy/railway).
+You set at least one provider key (the Blueprint prompts for `OPENAI_API_KEY`;
+add `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` to use another
+provider). The master key is auto-generated and `OTARI_REQUIRE_PRICING=false`
+is pre-set so an env-only deploy is usable out of the box. Full operator docs
+live in the root [README.md](../README.md).
 
 ## Connect to otari.ai
 

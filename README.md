@@ -4,9 +4,9 @@
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy-template/api/github/start?template_repo=<TEMPLATE_REPO_SLUG>)
 
-**Branch:** `render-templates` on [ojusave/otari](https://github.com/ojusave/otari) (fork of [mozilla-ai/otari](https://github.com/mozilla-ai/otari)). Upstream README: [README.UPSTREAM.md](./README.UPSTREAM.md). Gallery publish target: `render-examples/otari-render-template`.
+**Branch:** `render-templates` on [ojusave/otari](https://github.com/ojusave/otari) (fork of [mozilla-ai/otari](https://github.com/mozilla-ai/otari)). Upstream project README: [README.UPSTREAM.md](./README.UPSTREAM.md).
 
-Deploy [Otari](https://github.com/mozilla-ai/otari) (Mozilla AI) on Render without cloning the Python source tree. This template pulls the official `mzdotai/otari` image, wires Render Postgres for durable keys and usage, auto-generates a master key, and bootstraps a first-use API key on startup. Bring at least one provider key and point any OpenAI client at your `*.onrender.com` URL.
+Deploy [Otari](https://github.com/mozilla-ai/otari) on Render without building from source. This Blueprint pulls `mzdotai/otari:0.2.0`, wires Render Postgres for keys and usage, auto-generates a master key, and bootstraps a first-use API key on startup. Bring at least one provider key and point any OpenAI client at your `*.onrender.com` URL.
 
 ![Otari gateway on Render](./assets/hero.png)
 
@@ -37,9 +37,9 @@ Deploy [Otari](https://github.com/mozilla-ai/otari) (Mozilla AI) on Render witho
 
 - **Managed Postgres wired automatically** — `OTARI_DATABASE_URL` comes from `fromDatabase`; keys, budgets, and usage survive restarts without a compose file.
 - **Official image, no monorepo build** — Render pulls `mzdotai/otari:0.2.0` instead of compiling the uv/Python tree on every deploy.
-- **Env-only PaaS config** — Otari documents `OTARI_*` scalars and `OTARI_CONFIG_YAML` for platforms where mounting `config.yml` is awkward; this template uses that path.
+- **Env-only PaaS config** — Otari documents `OTARI_*` scalars and `OTARI_CONFIG_YAML` for platforms where mounting `config.yml` is awkward; this Blueprint uses that path.
 - **Private DB network** — Postgres has an empty `ipAllowList`, so only services in your Render workspace reach it over the private network.
-- **Same contract as upstream Railway** — mirrors [deploy/railway](https://github.com/mozilla-ai/otari/tree/main/deploy/railway): master key generated, `OTARI_REQUIRE_PRICING=false` for an env-only first run.
+- **Ready on first boot** — `auto_migrate` and `bootstrap_api_key` create the schema and mint a first-use `gw-…` key with no extra steps. `OTARI_REQUIRE_PRICING=false` keeps an env-only deploy usable before you configure pricing.
 
 ## Use cases
 
@@ -65,11 +65,11 @@ flowchart LR
 
 Region: **oregon** (override `region` on both resources in [`render.yaml`](./render.yaml) if you want another).
 
-This template does **not** deploy the optional Docker Compose profiles (code-exec sandbox, SearXNG web search, guardrails). Those are separate images and private services; see [Customization](#add-optional-tool-backends) if you need them later.
+This Blueprint does **not** deploy the optional Docker Compose profiles (code-exec sandbox, SearXNG web search, guardrails). Those are separate images and private services; see [Customization](#add-optional-tool-backends).
 
 ## Quickstart
 
-1. Click **[Deploy to Render](https://render.com/deploy-template/api/github/start?template_repo=<TEMPLATE_REPO_SLUG>)** and fork the template into your GitHub account.
+1. Click **[Deploy to Render](https://render.com/deploy-template/api/github/start?template_repo=<TEMPLATE_REPO_SLUG>)** and fork into your GitHub account.
 2. On Apply, set **at least one** provider key. The form prompts for `OPENAI_API_KEY`; leave it blank only if you will add `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` immediately after deploy.
 3. Confirm `otari` (Starter) and `otari-db` (Basic-256mb). Leave generated `OTARI_MASTER_KEY` alone.
 4. Wait until both resources are **Live** (~3–6 minutes: image pull + first migrate).
@@ -94,7 +94,7 @@ curl "$OTARI_URL/v1/chat/completions" \
   }'
 ```
 
-OpenAI SDK shape:
+OpenAI SDK:
 
 ```python
 from openai import OpenAI
@@ -137,11 +137,13 @@ You set these in the Render dashboard during Apply (or right after). The gateway
 |---------|---------------|---------------|
 | `OPENAI_API_KEY` | OpenAI provider credential (prompted at Apply) | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 
-**At least one** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` must be set for the gateway to serve traffic. Add non-OpenAI keys on the `otari` service → **Environment** after deploy if you prefer those providers. Provider list: [docs/models.md](https://github.com/mozilla-ai/otari/blob/main/docs/models.md).
+**At least one** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` must be set for the gateway to serve traffic. Add non-OpenAI keys on the `otari` service → **Environment** after deploy if you prefer those providers. Provider list: [docs/models.md](./docs/models.md).
+
+`OPENAI_API_KEY` is optional in the Blueprint form as a convenience: you are not limited to OpenAI. The underlying [any-llm](https://github.com/mozilla-ai/any-llm) SDK reads each provider's native env var directly.
 
 ### Auto-generated secrets
 
-Render generates these on first deploy. **Rotating `OTARI_MASTER_KEY` invalidates management access** until you update every operator script and dashboard note that stored the old value. It does not revoke existing `gw-…` API keys in the database.
+Render generates these on first deploy. **Rotating `OTARI_MASTER_KEY` invalidates management access** until you update every operator script that stored the old value. It does not revoke existing `gw-…` API keys in the database.
 
 | Env var | Purpose |
 |---------|---------|
@@ -157,8 +159,8 @@ Otari normalizes `postgresql://` to its async driver automatically, so the Rende
 
 ### Optional tweaks
 
-| Env var | Default (this template) | What it does |
-|---------|-------------------------|--------------|
+| Env var | Default (this Blueprint) | What it does |
+|---------|--------------------------|--------------|
 | `OTARI_REQUIRE_PRICING` | `false` | Image default is `true` (reject unpriced models). Set `false` so an env-only deploy works before you configure pricing. |
 | `OTARI_AUTO_MIGRATE` | `true` | Run Alembic migrations on startup |
 | `OTARI_BOOTSTRAP_API_KEY` | `true` | Mint a first-use `gw-…` key when the DB has none |
@@ -170,7 +172,9 @@ Otari normalizes `postgresql://` to its async driver automatically, so the Rende
 | `OTARI_AI_TOKEN` | unset | Enables **hybrid** mode with [otari.ai](https://otari.ai) |
 | `PORT` / `OTARI_PORT` | `8000` | Must stay aligned; Otari does not read Render's `PORT` alone |
 
-Full upstream reference: [Configuration](https://github.com/mozilla-ai/otari/blob/main/docs/configuration.md).
+To serve priced models with fail-closed billing, set `OTARI_REQUIRE_PRICING=true` and supply `pricing` (or `default_pricing: true`) through `OTARI_CONFIG_YAML` / `OTARI_CONFIG_B64`. See [Full config via environment](./docs/configuration.md#full-config-via-environment).
+
+Full config reference: [docs/configuration.md](./docs/configuration.md).
 
 ## Cost breakdown
 
@@ -190,7 +194,7 @@ Render's full pricing: [render.com/pricing](https://render.com/pricing). Provide
 
 ### Pin the upstream version
 
-This template pins `docker.io/mzdotai/otari:0.2.0` (matches upstream release [v0.2.0](https://github.com/mozilla-ai/otari/releases/tag/v0.2.0)). Tags on Docker Hub: [mzdotai/otari](https://hub.docker.com/r/mzdotai/otari/tags).
+This Blueprint pins `docker.io/mzdotai/otari:0.2.0` (matches upstream release [v0.2.0](https://github.com/mozilla-ai/otari/releases/tag/v0.2.0)). Tags: [mzdotai/otari](https://hub.docker.com/r/mzdotai/otari/tags).
 
 ```yaml
 # render.yaml — under services → otari → image
@@ -198,15 +202,13 @@ image:
   url: docker.io/mzdotai/otari:0.2.0   # or 0.2.1, or @sha256:…
 ```
 
-After editing, push to your fork and **Manual Deploy** (image-backed services do not auto-redeploy when a remote tag moves). Avoid floating `latest` in production.
+After editing, push and **Manual Deploy** (image-backed services do not auto-redeploy when a remote tag moves). Avoid floating `latest` in production.
 
 ### Add a custom domain
 
 In the Render dashboard: `otari` → **Settings** → **Custom Domains** → **Add**. Render issues TLS automatically. DNS steps: [Custom domains](https://render.com/docs/custom-domains).
 
 ### Add pricing (fail-closed billing)
-
-When you are ready to reject unpriced models:
 
 1. Set `OTARI_REQUIRE_PRICING=true` (or remove the override so the image default applies).
 2. Supply pricing via `OTARI_CONFIG_YAML`, for example:
@@ -229,11 +231,11 @@ Or use `POST /v1/pricing` with the master key. Database pricing wins over config
 2. Set `OTARI_AI_TOKEN` on the `otari` service.
 3. Redeploy. Local provider env vars are unused in hybrid mode; clients authenticate with otari.ai user tokens.
 
-Details: [Modes](https://github.com/mozilla-ai/otari/blob/main/docs/modes.md), [Deployment](https://github.com/mozilla-ai/otari/blob/main/docs/deployment.md).
+Details: [Modes](./docs/modes.md), [Deployment](./docs/deployment.md).
 
 ### Add optional tool backends
 
-Upstream Compose profiles (`code-exec`, `web-search`, `guardrails`) need extra containers on the private network (`OTARI_SANDBOX_URL`, `OTARI_WEB_SEARCH_URL`, `OTARI_GUARDRAILS_URL`). This template intentionally omits them so the one-click path stays two resources. To add them, create private services from the published images (`mzdotai/otari-sandbox-container`, SearXNG, etc.) and point the env vars at private DNS hostnames. See [docker-compose.yml](https://github.com/mozilla-ai/otari/blob/main/docker-compose.yml).
+Upstream Compose profiles (`code-exec`, `web-search`, `guardrails`) need extra containers on the private network (`OTARI_SANDBOX_URL`, `OTARI_WEB_SEARCH_URL`, `OTARI_GUARDRAILS_URL`). This Blueprint intentionally omits them so the one-click path stays two resources. To add them, create private services from the published images and point the env vars at private DNS hostnames. See [docker-compose.yml](./docker-compose.yml).
 
 ## Operations
 
@@ -249,7 +251,7 @@ Render Postgres on paid plans includes logical backups and point-in-time recover
 
 ### Scaling
 
-The gateway is largely stateless; state lives in Postgres. You can raise instance count on `otari` without a disk. Keep DB pool settings (`OTARI_DB_POOL_SIZE`, etc.) in mind if you scale out. Do not attach a disk unless you enable local file storage under `files_local_dir`.
+The gateway is largely stateless; state lives in Postgres. You can raise instance count on `otari` without a disk. Keep DB pool settings in mind if you scale out. Do not attach a disk unless you enable local file storage under `files_local_dir`.
 
 ### Logs
 
@@ -259,7 +261,7 @@ Dashboard → `otari` → **Logs**, or CLI: `render logs --resources <service-id
 
 ### Pick up upstream releases
 
-1. Check [mozilla-ai/otari releases](https://github.com/mozilla-ai/otari/releases) and [CHANGELOG](https://github.com/mozilla-ai/otari/blob/main/CHANGELOG.md).
+1. Check [mozilla-ai/otari releases](https://github.com/mozilla-ai/otari/releases) and [CHANGELOG](./CHANGELOG.md).
 2. Confirm the matching tag exists on [Docker Hub](https://hub.docker.com/r/mzdotai/otari/tags).
 3. Bump `image.url` in `render.yaml`, push, Manual Deploy.
 4. With `OTARI_AUTO_MIGRATE=true`, Alembic runs on startup. For cautious upgrades, take a Postgres backup first.
@@ -270,8 +272,8 @@ Image-backed services **do not** redeploy when you push a new digest to the same
 
 Watch the upstream changelog before crossing majors. Notable so far:
 
-- **v0.2.0** — current pin for this template; confirm release notes before moving to a later tag.
-- **`require_pricing` default `true`** — env-only deploys need `OTARI_REQUIRE_PRICING=false` or explicit pricing (this template sets `false`).
+- **v0.2.0** — current pin for this Blueprint; confirm release notes before moving to a later tag.
+- **`require_pricing` default `true`** — env-only deploys need `OTARI_REQUIRE_PRICING=false` or explicit pricing (this Blueprint sets `false`).
 
 ## Troubleshooting
 
@@ -289,7 +291,7 @@ With `OTARI_BOOTSTRAP_API_KEY=true` and an empty keys table, Otari prints a `gw-
 
 ### Chat returns 402 / pricing errors
 
-Image default is fail-closed pricing. This template sets `OTARI_REQUIRE_PRICING=false`. If you flipped it to `true` without configuring pricing, either add pricing (`OTARI_CONFIG_YAML` / `/v1/pricing`) or set `OTARI_REQUIRE_PRICING=false` again. Optionally enable `OTARI_DEFAULT_PRICING=true` for community rates.
+Image default is fail-closed pricing. This Blueprint sets `OTARI_REQUIRE_PRICING=false`. If you flipped it to `true` without configuring pricing, either add pricing (`OTARI_CONFIG_YAML` / `/v1/pricing`) or set `OTARI_REQUIRE_PRICING=false` again. Optionally enable `OTARI_DEFAULT_PRICING=true` for community rates.
 
 ### Provider auth errors (401/403 from upstream)
 
@@ -303,18 +305,13 @@ Render's internal `connectionString` is intended for private-network clients. Ot
 
 - Service logs: dashboard → **Logs** (or `render logs --resources <id> --tail`)
 - Deploy events: dashboard → **Events**
-- Template issues: open an issue on this repo after publish
 - Application bugs: [mozilla-ai/otari issues](https://github.com/mozilla-ai/otari/issues)
 
 ## FAQ
 
 ### Do I need an otari.ai account?
 
-No. Standalone mode (this template's default) only needs a provider key and the generated master key. Hybrid mode is optional via `OTARI_AI_TOKEN`.
-
-### Is this the same as the Railway one-click?
-
-Same shape: official image + managed Postgres + `OTARI_REQUIRE_PRICING=false` + generated master key. Infra is Render Blueprint (`render.yaml`) instead of Railway's hosted template object. Upstream docs: [deploy/railway](https://github.com/mozilla-ai/otari/tree/main/deploy/railway).
+No. Standalone mode (this Blueprint's default) only needs a provider key and the generated master key. Hybrid mode is optional via `OTARI_AI_TOKEN`.
 
 ### Can I run this on Render's free plan?
 
@@ -322,7 +319,7 @@ Technically you can change plans in the dashboard, but Free web sleeps after ~15
 
 ### Where is the UI?
 
-Otari is an API gateway. Use `/docs` (Swagger), the Postman collection in upstream `docs/public/`, or any OpenAI-compatible client. There is no separate admin SPA in this image.
+Otari is an API gateway. Use `/docs` (Swagger), the Postman collection in `docs/public/`, or any OpenAI-compatible client. There is no separate admin SPA in this image.
 
 ### Can I use Anthropic / Mistral / Gemini instead of OpenAI?
 
@@ -338,16 +335,16 @@ In standalone mode, provider keys stay in your Otari service env and are used on
 
 ## Security
 
-- **Encryption at rest:** Render encrypts disks and managed Postgres at rest; application-level field encryption is not added by this template.
+- **Encryption at rest:** Render encrypts disks and managed Postgres at rest; application-level field encryption is not added by this Blueprint.
 - **Encryption in transit:** TLS to `*.onrender.com` (and custom domains); private network to Postgres.
 - **Network exposure:** `otari` is public HTTPS. `otari-db` has `ipAllowList: []` (private only).
 - **Secret rotation:** Rotate provider keys in the dashboard and redeploy/restart. Rotating `OTARI_MASTER_KEY` requires updating operator tooling; revoke `gw-…` keys via the management API when a client is compromised.
-- **Reporting vulnerabilities:** template packaging → this repo; Otari itself → [SECURITY.md](https://github.com/mozilla-ai/otari/blob/main/SECURITY.md).
+- **Reporting vulnerabilities:** [SECURITY.md](./SECURITY.md).
 
 ## Caveats and limitations
 
 - **Image pin, not `latest`** — you must bump `image.url` (or Manual Deploy) to pick up upstream releases.
-- **No Compose tool profiles** — sandbox, SearXNG, and guardrails are out of scope for the two-resource template.
+- **No Compose tool profiles** — sandbox, SearXNG, and guardrails are out of scope for the two-resource Blueprint.
 - **`OTARI_REQUIRE_PRICING=false`** — convenient for first run; turn pricing on before you rely on budget enforcement for unlisted models.
 - **Port coupling** — keep `PORT` and `OTARI_PORT` both at `8000` unless you change both and understand Render's port detection.
 - **Ephemeral filesystem** — local file uploads under the default `files_local_dir` do not survive deploys unless you add a disk and reconfigure the path.
@@ -357,7 +354,6 @@ In standalone mode, provider keys stay in your Otari service env and are used on
 
 - **Upstream:** [mozilla-ai/otari](https://github.com/mozilla-ai/otari) — Apache-2.0 (this fork keeps that license; see [LICENSE](./LICENSE))
 - **Image:** [mzdotai/otari](https://hub.docker.com/r/mzdotai/otari) on Docker Hub
-- **This fork:** [ojusave/otari](https://github.com/ojusave/otari) — adds `render.yaml` for one-click Render deploy
-- **Inspired by:** upstream [deploy/railway](https://github.com/mozilla-ai/otari/tree/main/deploy/railway) env contract
+- **This fork:** [ojusave/otari](https://github.com/ojusave/otari) (`render-templates` branch) — adds `render.yaml` for one-click Render deploy
 
-If this template helped you, star [mozilla-ai/otari](https://github.com/mozilla-ai/otari).
+If this helped you, star [mozilla-ai/otari](https://github.com/mozilla-ai/otari).

@@ -158,13 +158,13 @@ This starts Otari on port 8000 backed by a Postgres container, so keys, budgets,
 
 ## Other ways to run
 
-### Railway
+### Render
 
-Want a hosted gateway with no local setup? Deploy Otari plus a managed Postgres on [Railway](https://railway.com) in one click. Bring a provider key (OpenAI, Anthropic, Mistral, or Gemini) and you get a running gateway with virtual keys, budgets, and usage tracking.
+Want a hosted gateway with no local setup? Deploy Otari plus managed Postgres on [Render](https://render.com) via the Blueprint in [`render.yaml`](render.yaml). Bring a provider key (OpenAI, Anthropic, Mistral, or Gemini) and you get a running gateway with virtual keys, budgets, and usage tracking.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/otari-railway-template-demo)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy-template/api/github/start?template_repo=<TEMPLATE_REPO_SLUG>)
 
-The two-service template, its environment inputs, and how to publish it are documented in [`deploy/railway/`](deploy/railway/README.md).
+Operator docs for the Render packaging live in the root [README.md](README.md).
 
 ### From source (development)
 

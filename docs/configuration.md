@@ -93,7 +93,7 @@ master_key: "${MY_SECRET_KEY}"
 
 ### Full config via environment
 
-On PaaS platforms (Railway, Render, Fly.io, Kubernetes) where mounting a `config.yml` is awkward, you can supply the entire config, including the non-scalar `providers` and `pricing` fields, through the environment. This reaches the full schema with no file mount and no custom image.
+On PaaS platforms (Render, Fly.io, Kubernetes) where mounting a `config.yml` is awkward, you can supply the entire config, including the non-scalar `providers` and `pricing` fields, through the environment. This reaches the full schema with no file mount and no custom image.
 
 | Variable | Description |
 |----------|-------------|
