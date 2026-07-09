@@ -33,7 +33,7 @@ Deploy [Otari](https://github.com/mozilla-ai/otari) (Mozilla AI) on Render witho
 
 ## Why deploy Otari on Render
 
-- **Managed Postgres wired automatically** — `OTARI_DATABASE_URL` comes from `fromDatabase`; keys, budgets, and usage survive restarts without a compose file.
+- **Managed Postgres wired automatically** — `OTARI_DATABASE_URL` comes from `fromDatabase`; keys, budgets, and usage survive restarts without manual connection strings.
 - **Official image, no monorepo build** — Render pulls `mzdotai/otari:0.2.0` instead of compiling the uv/Python tree on every deploy.
 - **Env-only PaaS config** — Otari documents `OTARI_*` scalars and `OTARI_CONFIG_YAML` for platforms where mounting `config.yml` is awkward; this Blueprint uses that path.
 - **Private DB network** — Postgres has an empty `ipAllowList`, so only services in your Render workspace reach it over the private network.
@@ -65,7 +65,7 @@ flowchart LR
 
 Region: **oregon** (override `region` on both resources in [`render.yaml`](./render.yaml) if you want another).
 
-This Blueprint does **not** deploy optional Docker Compose profiles (code-exec sandbox, SearXNG web search, guardrails). Those need separate private services; see [Customization](#add-optional-tool-backends).
+This Blueprint does **not** deploy optional tool backends (code-exec sandbox, web search, guardrails). Add those later as separate Render private services if you need them; see [Customization](#add-optional-tool-backends).
 
 ## Quickstart
 
@@ -111,7 +111,7 @@ print(client.chat.completions.create(
 ).choices[0].message.content)
 ```
 
-The gateway root page (`/`) still shows `base_url="http://localhost:8000/v1"` in its quickstart. That snippet is for local Docker. On Render, replace it with `https://<your-service>.onrender.com/v1` as above.
+The gateway root page (`/`) may show a sample `base_url` that is not your public Render URL. Always use `https://<your-service>.onrender.com/v1` in clients.
 
 Interactive docs: `$OTARI_URL/docs` (enabled by default in the image).
 
@@ -242,13 +242,13 @@ Or use `POST /v1/pricing` with the master key. Database pricing wins over config
 
 1. In otari.ai: **Organisation → Gateways** → create a gateway → **Create token** (`gw_…` / platform token).
 2. Set `OTARI_AI_TOKEN` on the `otari` service.
-3. Redeploy. Local provider env vars are unused in hybrid mode; clients authenticate with otari.ai user tokens.
+3. Redeploy. Provider env vars on this service are unused in hybrid mode; clients authenticate with otari.ai user tokens.
 
 Details: [Modes](https://github.com/mozilla-ai/otari/blob/main/docs/modes.md), [Deployment](https://github.com/mozilla-ai/otari/blob/main/docs/deployment.md).
 
 ### Add optional tool backends
 
-Upstream Compose profiles (`code-exec`, `web-search`, `guardrails`) need extra containers on the private network (`OTARI_SANDBOX_URL`, `OTARI_WEB_SEARCH_URL`, `OTARI_GUARDRAILS_URL`). This Blueprint intentionally omits them so the one-click path stays two resources. To add them, create private services from the published images and point the env vars at private DNS hostnames. See [docker-compose.yml](https://github.com/mozilla-ai/otari/blob/main/docker-compose.yml).
+Otari can call optional backends for code execution, web search, and guardrails via `OTARI_SANDBOX_URL`, `OTARI_WEB_SEARCH_URL`, and `OTARI_GUARDRAILS_URL`. This Blueprint intentionally omits those sidecars so the one-click path stays two resources. To add them, deploy the published images as Render private services and point the env vars at private DNS hostnames. Upstream reference: [mozilla-ai/otari](https://github.com/mozilla-ai/otari).
 
 ## Operations
 
@@ -264,7 +264,7 @@ Render Postgres on paid plans includes logical backups and point-in-time recover
 
 ### Scaling
 
-The gateway is largely stateless; state lives in Postgres. You can raise instance count on `otari` without a disk. Keep DB pool settings in mind if you scale out. Do not attach a disk unless you enable local file storage under `files_local_dir`.
+The gateway is largely stateless; state lives in Postgres. You can raise instance count on `otari` without a disk. Keep DB pool settings in mind if you scale out. Do not attach a disk unless you enable the files backend on a persistent mount.
 
 ### Logs
 
@@ -298,9 +298,9 @@ Confirm `docker.io/mzdotai/otari:0.2.0` still exists on Docker Hub and that Rend
 
 Otari listens on **`OTARI_PORT` (8000 by default)**, not on Render's injected `PORT` alone. This Blueprint sets `PORT=8000` and `OTARI_PORT=8000` together. If you override one without the other, Render's health check against `/health` will fail with "No open ports detected" or repeated 502s. Check logs for bind address and migration errors.
 
-### Homepage sample still says `localhost:8000`
+### Client `base_url` does not match the service URL
 
-The Otari root UI quickstart hardcodes `base_url="http://localhost:8000/v1"` for local Docker. On Render, set `base_url` to `https://<your-service>.onrender.com/v1` (see Quickstart above). Do not point clients at `localhost` against a hosted instance.
+Use `https://<your-service>.onrender.com/v1` in SDKs and curl (see Quickstart). Ignore any sample `base_url` on the gateway root page that does not match your Render hostname.
 
 ### `No API keys found` / missing bootstrap key
 
@@ -341,7 +341,7 @@ Yes. Add the matching env var on the service and call models like `anthropic:cla
 
 ### Does this include code execution, web search, or guardrails?
 
-Not in the default Blueprint. Those are opt-in Compose profiles with extra images. See [Add optional tool backends](#add-optional-tool-backends).
+Not in the default Blueprint. See [Add optional tool backends](#add-optional-tool-backends) to add them as private services.
 
 ### Can I run this on Render's free plan?
 
@@ -349,7 +349,7 @@ Technically you can change plans in the dashboard, but Free web sleeps after ~15
 
 ### Does this template use a persistent disk?
 
-No. State lives in managed Postgres. Local file uploads under the default `files_local_dir` do not survive deploys unless you add a disk and reconfigure the path. There is nothing to "move off a disk" in the default Blueprint.
+No. State lives in managed Postgres. File uploads on the default ephemeral path do not survive deploys unless you add a disk and reconfigure the files backend.
 
 ### Will my provider keys leave my Render account?
 
@@ -366,10 +366,10 @@ In standalone mode, provider keys stay in your Otari service env and are used on
 ## Caveats and limitations
 
 - **Image pin, not `latest`** — you must bump `image.url` (or Manual Deploy) to pick up upstream releases.
-- **No Compose tool profiles** — sandbox, SearXNG, and guardrails are out of scope for the two-resource Blueprint.
+- **No optional tool sidecars** — sandbox, web search, and guardrails are out of scope for the two-resource Blueprint.
 - **`OTARI_REQUIRE_PRICING=false`** — convenient for first run; turn pricing on before you rely on budget enforcement for unlisted models.
 - **Port coupling** — keep `PORT` and `OTARI_PORT` both at `8000` unless you change both and understand Render's port detection.
-- **Ephemeral filesystem** — local file uploads under the default `files_local_dir` do not survive deploys unless you add a disk and reconfigure the path.
+- **Ephemeral filesystem** — file uploads on the default path do not survive deploys unless you add a disk and reconfigure the files backend.
 - **Starter memory** — adequate for the slim Python gateway; heavy concurrency or large uploads may need Standard.
 ## Credits and license
 
