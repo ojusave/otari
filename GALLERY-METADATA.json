@@ -1,0 +1,29 @@
+{
+  "name": "Otari",
+  "slug": "otari",
+  "category": "AI / Agents",
+  "pitch": "Self-hosted OpenAI-compatible LLM gateway with virtual keys, budgets, and usage tracking on managed Postgres.",
+  "repo": "https://github.com/ojusave/otari",
+  "branch": "render-templates",
+  "upstream": "https://github.com/mozilla-ai/otari",
+  "license_template": "Apache-2.0",
+  "license_upstream": "Apache-2.0",
+  "estimated_monthly_cost_usd": 13,
+  "resources": [
+    {
+      "type": "web",
+      "plan": "starter",
+      "notes": "image-wrapper mzdotai/otari:0.2.0"
+    },
+    {
+      "type": "postgres",
+      "plan": "basic-256mb",
+      "notes": "keys, budgets, usage"
+    }
+  ],
+  "required_secrets": ["OPENAI_API_KEY"],
+  "generated_secrets": ["OTARI_MASTER_KEY"],
+  "image": "docker.io/mzdotai/otari:0.2.0",
+  "contact_email": "<maintainer>",
+  "notes": "Gallery publish target: render-examples/otari-render-template with is_template=true; packaging currently on ojusave/otari@render-templates"
+}
