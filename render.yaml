@@ -1,8 +1,7 @@
 # yaml-language-server: $schema=https://render.com/schema/render.yaml.json
 #
 # Otari on Render — one-click gallery template
-# Repo: https://github.com/ojusave/otari (branch: render-templates)
-# Gallery target: https://github.com/render-examples/otari-render-template
+# Repo: https://github.com/render-examples/otari-render-template
 # Upstream: https://github.com/mozilla-ai/otari
 # Image: https://hub.docker.com/r/mzdotai/otari
 #
