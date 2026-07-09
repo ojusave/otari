@@ -94,17 +94,24 @@ curl "$OTARI_URL/v1/chat/completions" \
   }'
 ```
 
-OpenAI SDK:
+OpenAI SDK (use your Render URL, not the homepage sample):
 
 ```python
+import os
 from openai import OpenAI
 
-client = OpenAI(api_key="gw-...", base_url="https://<your-otari-service>.onrender.com/v1")
+client = OpenAI(
+    api_key=os.environ["OTARI_API_KEY"],  # bootstrap gw-… from Logs
+    base_url="https://<your-otari-service>.onrender.com/v1",
+)
+
 print(client.chat.completions.create(
     model="openai:gpt-4o-mini",
     messages=[{"role": "user", "content": "Hello from Otari on Render"}],
 ).choices[0].message.content)
 ```
+
+The gateway root page (`/`) still shows `base_url="http://localhost:8000/v1"` in its quickstart. That snippet is for local Docker. On Render, replace it with `https://<your-service>.onrender.com/v1` as above.
 
 Interactive docs: `$OTARI_URL/docs` (enabled by default in the image).
 
@@ -294,6 +301,10 @@ Otari listens on **`OTARI_PORT` (8000 by default)**, not on Render's injected `P
 ### Blueprint file not found on main
 
 `render.yaml` lives on the `render-templates` branch of this fork, not on `main`. Set **Branch** to `render-templates` and Blueprint path to `render.yaml` (repo-relative), not a GitHub URL fragment like `otari/tree/render-templates/render.yaml`.
+
+### Homepage sample still says `localhost:8000`
+
+The Otari root UI quickstart hardcodes `base_url="http://localhost:8000/v1"` for local Docker. On Render, set `base_url` to `https://<your-service>.onrender.com/v1` (see Quickstart above). Do not point clients at `localhost` against a hosted instance.
 
 ### `No API keys found` / missing bootstrap key
 
