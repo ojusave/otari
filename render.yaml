@@ -48,10 +48,16 @@ projects:
                 value: "true"
               - key: OTARI_BOOTSTRAP_API_KEY
                 value: "true"
-              # At least one provider key is needed to serve traffic.
-              # Add ANTHROPIC_API_KEY / MISTRAL_API_KEY / GEMINI_API_KEY in the
-              # dashboard if you prefer those providers over OpenAI.
+              # Provider credentials (any-llm). Prompted on initial Blueprint
+              # create so deployers can fill whichever providers they use.
+              # At least one is needed to serve traffic; leave unused keys blank.
               - key: OPENAI_API_KEY
+                sync: false
+              - key: ANTHROPIC_API_KEY
+                sync: false
+              - key: MISTRAL_API_KEY
+                sync: false
+              - key: GEMINI_API_KEY
                 sync: false
 
         databases:

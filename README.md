@@ -70,7 +70,7 @@ This Blueprint does **not** deploy optional tool backends (code-exec sandbox, we
 ## Quickstart
 
 1. Click **[Deploy to Render](https://render.com/deploy-template/api/github/start?template_repo=otari-render-template)** and fork the template into your GitHub account.
-2. On Apply, set **at least one** provider key. The form prompts for `OPENAI_API_KEY`; leave it blank only if you will add `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` immediately after deploy.
+2. On Apply, set **at least one** provider key. The form prompts for `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, and `GEMINI_API_KEY`; fill whichever you use and leave the rest blank.
 3. Confirm `otari` (Starter) and `otari-db` (Basic-256mb). Leave generated `OTARI_MASTER_KEY` alone.
 4. Wait until both resources are **Live** (~3–6 minutes: image pull + first migrate).
 5. Open the `otari` service **Logs**, copy the bootstrap `gw-…` API key printed once on first startup, then open the `*.onrender.com` URL and hit health:
@@ -119,7 +119,7 @@ Interactive docs: `$OTARI_URL/docs` (enabled by default in the image).
 
 | Key | Env / source | Used for |
 |-----|--------------|----------|
-| Provider key | `OPENAI_API_KEY` (or Anthropic/Mistral/Gemini) | Real upstream credential; stays inside Otari |
+| Provider key | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `MISTRAL_API_KEY` / `GEMINI_API_KEY` | Real upstream credential; stays inside Otari |
 | Master key | `OTARI_MASTER_KEY` (auto-generated) | Management: `/v1/keys`, `/v1/users`, `/v1/budgets`, … |
 | API / virtual key | `gw-…` from logs or `POST /v1/keys` | What clients send as `Authorization: Bearer` |
 
@@ -142,11 +142,14 @@ You set these in the Render dashboard during the Apply step. The gateway process
 
 | Env var | What it's for | How to get it |
 |---------|---------------|---------------|
-| `OPENAI_API_KEY` | OpenAI provider credential (prompted at Apply) | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `OPENAI_API_KEY` | OpenAI credential (prompted at Apply; leave blank if unused) | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `ANTHROPIC_API_KEY` | Anthropic credential (prompted at Apply; leave blank if unused) | [console.anthropic.com](https://console.anthropic.com/) |
+| `MISTRAL_API_KEY` | Mistral credential (prompted at Apply; leave blank if unused) | [console.mistral.ai](https://console.mistral.ai/) |
+| `GEMINI_API_KEY` | Google Gemini credential (prompted at Apply; leave blank if unused) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 
-**At least one** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, or `GEMINI_API_KEY` must be set for the gateway to serve traffic. Add non-OpenAI keys on the `otari` service → **Environment** after deploy if you prefer those providers. Provider list: [docs/models.md](./docs/models.md).
+**At least one** of these four must be set for the gateway to serve traffic. Fill whichever providers you use on Apply and leave the rest blank. Other any-llm providers can still be added later on the `otari` service → **Environment**. Full provider list: [docs/models.md](./docs/models.md).
 
-`OPENAI_API_KEY` is optional in the Blueprint form as a convenience: you are not limited to OpenAI. The underlying [any-llm](https://github.com/mozilla-ai/any-llm) SDK reads each provider's native env var directly.
+The underlying [any-llm](https://github.com/mozilla-ai/any-llm) SDK reads each provider's native env var directly.
 
 ### Auto-generated secrets
 
